@@ -16,20 +16,55 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
 
-    // Simulate login - in production, call your API
-    setTimeout(() => {
-      if (role === "victim") {
-        router.push("/victim/dashboard")
+    console.log("[v0] Attempting login with email:", email, "role:", role)
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role }),
+      })
+
+      const data = await response.json()
+      console.log("[v0] Login response:", data)
+
+      if (response.ok) {
+        localStorage.clear()
+
+        // Store user info in localStorage
+        localStorage.setItem("userRole", role)
+        localStorage.setItem("userEmail", email)
+
+        if (role === "hospital" && data.user.id) {
+          localStorage.setItem("hospitalId", data.user.id)
+          localStorage.setItem("hospitalName", data.user.name)
+          console.log("[v0] Stored hospital data:", data.user.id, data.user.name)
+        }
+
+        console.log("[v0] Redirecting to dashboard")
+
+        if (role === "victim") {
+          router.push("/victim/dashboard")
+        } else {
+          router.push("/hospital/dashboard")
+        }
       } else {
-        router.push("/hospital/dashboard")
+        console.error("[v0] Login failed:", data.error)
+        setError(data.error || "Login failed. Please check your credentials.")
       }
+    } catch (err) {
+      console.error("[v0] Login error:", err)
+      setError("An error occurred during login. Please try again.")
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -99,6 +134,12 @@ export default function LoginPage() {
                   required
                 />
               </div>
+
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-lg">
+                  {error}
+                </div>
+              )}
 
               {/* Submit */}
               <Button

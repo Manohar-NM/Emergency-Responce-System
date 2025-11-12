@@ -3,8 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -50,10 +50,17 @@ interface ResponseRecord {
 }
 
 export default function HospitalDashboard() {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [editingHospital, setEditingHospital] = useState(false)
   const [emergencies, setEmergencies] = useState<SOSAlert[]>([])
   const [responseHistory, setResponseHistory] = useState<ResponseRecord[]>([])
+
+  const [hospitalData, setHospitalData] = useState<{
+    id: string
+    latitude: number
+    longitude: number
+  } | null>(null)
 
   const [hospitalInfo, setHospitalInfo] = useState({
     name: "City Hospital",
@@ -68,6 +75,73 @@ export default function HospitalDashboard() {
   const [editFormData, setEditFormData] = useState(hospitalInfo)
 
   useEffect(() => {
+    const userRole = localStorage.getItem("userRole")
+    const userEmail = localStorage.getItem("userEmail")
+
+    console.log("[v0] Dashboard loading - Role:", userRole, "Email:", userEmail)
+
+    if (userRole !== "hospital" || !userEmail) {
+      console.log("[v0] Invalid session, redirecting to login")
+      router.push("/auth/login")
+      return
+    }
+
+    const fetchHospitalData = async () => {
+      try {
+        console.log("[v0] Fetching hospital data for email:", userEmail)
+        const response = await fetch(`/api/hospitals/get-current?email=${encodeURIComponent(userEmail)}`)
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log("[v0] Received hospital data:", data.hospital)
+
+          if (data.hospital) {
+            if (data.hospital.email !== userEmail) {
+              console.error("[v0] Email mismatch! Expected:", userEmail, "Got:", data.hospital.email)
+              alert("Session error: Email mismatch. Please log in again.")
+              localStorage.clear()
+              router.push("/auth/login")
+              return
+            }
+
+            setHospitalData({
+              id: data.hospital.id,
+              latitude: data.hospital.latitude,
+              longitude: data.hospital.longitude,
+            })
+
+            const updatedInfo = {
+              name: data.hospital.name,
+              email: data.hospital.email,
+              phone: data.hospital.phone,
+              address: data.hospital.address,
+              services: data.hospital.services || "Cardiac Care, Trauma Center, 24/7 ER, Pediatrics",
+              ambulances: data.hospital.available_ambulances || 5,
+              availableStaff: data.hospital.available_staff || 12,
+            }
+
+            console.log("[v0] Setting hospital info:", updatedInfo)
+            setHospitalInfo(updatedInfo)
+            setEditFormData(updatedInfo)
+          }
+        } else {
+          console.error("[v0] Failed to fetch hospital data, status:", response.status)
+          const errorData = await response.json()
+          console.error("[v0] Error details:", errorData)
+          alert("Failed to load hospital data. Please log in again.")
+          router.push("/auth/login")
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching hospital data:", error)
+        alert("Error loading hospital data. Please log in again.")
+        router.push("/auth/login")
+      }
+    }
+
+    fetchHospitalData()
+  }, [router])
+
+  useEffect(() => {
     const fetchAlerts = async () => {
       try {
         const response = await fetch("/api/sos/get-alerts")
@@ -80,7 +154,6 @@ export default function HospitalDashboard() {
       }
     }
 
-    // Fetch alerts immediately and then every 3 seconds
     fetchAlerts()
     const interval = setInterval(fetchAlerts, 3000)
 
@@ -89,6 +162,11 @@ export default function HospitalDashboard() {
 
   const handleAccept = async (id: string) => {
     try {
+      if (!hospitalData) {
+        alert("Hospital data not loaded yet. Please wait.")
+        return
+      }
+
       const emergency = emergencies.find((e) => e.id === id)
       if (!emergency) return
 
@@ -97,10 +175,10 @@ export default function HospitalDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           alertId: id,
-          hospitalId: "hospital-1",
+          hospitalId: hospitalData.id,
           hospitalName: hospitalInfo.name,
-          hospitalLat: 40.7128, // Example coordinates
-          hospitalLng: -74.006,
+          hospitalLat: hospitalData.latitude,
+          hospitalLng: hospitalData.longitude,
         }),
       })
 
@@ -112,7 +190,6 @@ export default function HospitalDashboard() {
         })
 
         if (response.ok) {
-          // Add to response history
           setResponseHistory([
             {
               id: Math.random().toString(36).substr(2, 9),
@@ -125,7 +202,6 @@ export default function HospitalDashboard() {
             ...responseHistory,
           ])
 
-          // Remove from pending emergencies
           setEmergencies(emergencies.filter((e) => e.id !== id))
           alert("Emergency accepted! Ambulance dispatched.")
         }
@@ -170,6 +246,12 @@ export default function HospitalDashboard() {
     })
   }
 
+  const handleLogout = () => {
+    console.log("[v0] Logging out")
+    localStorage.clear()
+    router.push("/auth/login")
+  }
+
   const getPriorityColor = (priority: string) => {
     return priority === "high" ? "text-accent" : "text-secondary"
   }
@@ -204,12 +286,10 @@ export default function HospitalDashboard() {
                 </span>
               )}
             </div>
-            <Link href="/">
-              <Button variant="outline" size="sm" className="transition-smooth bg-transparent">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </Link>
+            <Button onClick={handleLogout} variant="outline" size="sm" className="transition-smooth bg-transparent">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
