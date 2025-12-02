@@ -1,30 +1,3 @@
-# Remix of Emergency Response System
-
-*Automatically synced with your [v0.app](https://v0.app) deployments*
-
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/nmmanu219-7670s-projects/v0-remix-of-emergency-response-system)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/8vqiokjgub5)
-
-## Overview
-
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
-
-## Deployment
-
-Your project is live at:
-
-**[https://vercel.com/nmmanu219-7670s-projects/v0-remix-of-emergency-response-system](https://vercel.com/nmmanu219-7670s-projects/v0-remix-of-emergency-response-system)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.app/chat/8vqiokjgub5](https://v0.app/chat/8vqiokjgub5)**
-
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+# Emergency Response System 
+built a comprehensive system to track the patients who are in need for medical emergencies.
+Focused on database management and efficient data retrieval to ensure accurate record-keeping and location tracking.
